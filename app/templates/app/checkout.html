@@ -1,0 +1,155 @@
+{% extends 'app/base.html' %}
+{% load static %}
+{% block content_checkout %}
+     <div class="row" style="width: 100%;">
+		<div class="col-lg-6">
+			<div class="box-element" id="form-wrapper">
+				<form id="form">
+					<div id="user-info">
+						<div class="form-field">
+							<input id="checkout-username" required class="form-control" type="text" name="name" placeholder="Name.." value={{username}}>
+						</div>
+						<div class="form-field">
+							<input id="checkout-email" required class="form-control" type="email" name="email" placeholder="Email.." value={{email}}>
+						</div>
+					</div>
+					
+					<div id="shipping-info">
+						<hr>
+						<p>Shipping Information:</p>
+						<!-- <p>{{alert_message}}</p> -->
+						<hr>
+						<div class="form-field">
+							<input id="checkout-address" class="form-control" type="text" name="address" placeholder="Address..">
+						</div>
+						<div class="form-field">
+							<input id="checkout-city" class="form-control" type="text" name="city" placeholder="City..">
+						</div>
+						<div class="form-field">
+							<input id="checkout-state" class="form-control" type="text" name="state" placeholder="State..">
+						</div>
+						<div class="form-field">
+							<input id="checkout-phone" class="form-control" type="text" name="zipcode" placeholder="Phone number..">
+						</div>
+						<!-- <div class="form-field">
+							<input class="form-control" type="text" name="country" placeholder="Zip code..">
+						</div> -->
+					</div>
+
+					<hr>
+					<!-- <input id="form-button" class="btn btn-success btn-block" type="submit" value="Continue"> -->
+					<button id="form-button-hi" class="btn btn-success btn-block">SAVE</button>
+				</form>
+			</div>
+
+			<br>
+			<div class="box-element" id="payment-info">
+				<small>Paypal Options</small>
+				<div id="paypal-button-container"></div>
+			</div>
+			
+		</div>
+
+		<div class="col-lg-6">
+			<div class="box-element">
+				<a  class="btn btn-outline-dark" href="{% url 'cart' %}">&#x2190; Back to Cart</a>
+				<hr>
+				<h3>Order Summary</h3>
+				<hr>
+				{% for item in items %}
+				<div class="cart-row">
+					<div style="flex:2"><img class="row-image" src="{{item.product.ImageURL}}"></div>
+					<div style="flex:2"><p>{{item.product.name}}</p></div>
+					<div style="flex:1"><p>${{item.product.price | floatformat:2}}</p></div>
+					<div style="flex:1"><p>{{item.quantity}}</p></div>
+				</div>
+				{% endfor %}
+				<h5>Items:   {{order.get_cart_items}}</h5>
+				<h5>Total:   ${{order.get_cart_total | floatformat:2}}</h5>
+			</div>
+		</div>
+	</div>
+	<script src="https://www.paypalobjects.com/api/checkout.js"></script>
+	<script>
+
+		// Render the PayPal button
+	
+		paypal.Button.render({
+	
+			// Set your environment
+	
+			env: 'sandbox', // sandbox | production
+	
+			// Specify the style of the button
+	
+			style: {
+				label: 'checkout',
+				size:  'small',    // small | medium | large | responsive
+				shape: 'pill',     // pill | rect
+				color: 'gold'      // gold | blue | silver | black
+			},
+	
+			// PayPal Client IDs - replace with your own
+			// Create a PayPal app: https://developer.paypal.com/developer/applications/create
+	
+			client: {
+				sandbox:    'AZDxjDScFpQtjWTOUtWKbyN_bDt4OgqaF4eYXlewfBP4-8aqX3PiV8e1GWU6liB2CUXlkA59kJXE7M6R',
+				production: '<insert production client id>'
+			},
+	
+			payment: function(data, actions) {
+				return actions.payment.create({
+					payment: {
+						transactions: [
+							{
+								amount: { total: '{{total}}', currency: 'USD' }
+							}
+						]
+					}
+				});
+			},
+	
+			onAuthorize: function(data, actions) {
+				return actions.payment.execute().then(function() {
+					window.alert('Payment Complete!');
+					submitFormData();
+				});
+			}
+	
+		}, '#paypal-button-container');
+	
+		function submitFormData() {
+			var address = document.getElementById('checkout-address').value;
+			var city = document.getElementById('checkout-city').value;
+			var state = document.getElementById('checkout-state').value;
+			var phone = document.getElementById('checkout-phone').value;
+		
+			console.log(address)
+		
+			fetch('/update_checkout/', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-CSRFToken': csrftoken
+				},
+				body: JSON.stringify({
+					// 'username': username,
+					// 'email': email,
+					'address': address,
+					'city': city,
+					'state': state,
+					'phone': phone
+				})
+			})
+			.then(response => response.json())
+			.then(data => {
+				console.log(data);
+				location.reload();
+			})
+			.catch(error => {
+				console.error('Error', error);
+			})
+		}
+	</script>
+	
+{% endblock content_checkout %}
